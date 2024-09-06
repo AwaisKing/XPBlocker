@@ -22,6 +22,7 @@
         <activity-alias
             android:name=".SettingsActivityLauncher"
             android:enabled="true"
+            android:exported="true"
             android:targetActivity=".ui.SettingsActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
