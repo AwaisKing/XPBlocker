@@ -2,12 +2,13 @@ apply plugin: 'com.android.application'
 
 android {
     namespace 'com.aviraxp.xpblocker'
+    compileSdk 35
     
     defaultConfig {
         applicationId 'com.aviraxp.xpblocker'
         minSdk 26
-        targetSdk 34
-        
+        targetSdk 35
+
         versionCode 34
         versionName "1.8.34"
 
