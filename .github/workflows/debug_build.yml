@@ -37,12 +37,11 @@ jobs:
           name: xposed-adblocker
           path: ./app/build/outputs/apk/debug/app-debug.apk
       - name: Upload APK file to release
-        uses: xresloader/upload-to-github-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        # if: startsWith(github.ref, 'refs/tags/')
         with:
-          file: "*/outputs/apk/debug/app-debug.apk"
-          tags: true
+          files: |
+            ./app/build/outputs/apk/debug/app-debug.apk
           # gh release upload ${{github.event.release.tag_name}} ./app/build/outputs/apk/debug/app-debug.apk
   release:
     name: Generate Release APK
