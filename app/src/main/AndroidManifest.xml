@@ -12,6 +12,7 @@
         <activity
             android:name=".ui.SettingsActivity"
             android:label="@string/app_name"
+            android:exported="true"
             tools:ignore="ExportedPreferenceActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,7 +22,6 @@
         <activity-alias
             android:name=".SettingsActivityLauncher"
             android:enabled="true"
-            android:exported="true"
             android:targetActivity=".ui.SettingsActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
