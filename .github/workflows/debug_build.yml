@@ -28,21 +28,26 @@ jobs:
         with:
           distribution: "temurin"
           java-version: 17
+          
       - name: Build
-        run: |
-          ./gradlew assembleDebug
+        run: ./gradlew assembleDebug
+          
       - name: Store generated APK file
         uses: actions/upload-artifact@v4
         with:
           name: xposed-adblocker
           path: ./app/build/outputs/apk/debug/app-debug.apk
+        
       - name: Upload APK file to release
-        uses: softprops/action-gh-release@v2
-        # if: startsWith(github.ref, 'refs/tags/')
+        uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          files: |
-            ./app/build/outputs/apk/debug/app-debug.apk
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Debug Build"
+          files: ./app/build/outputs/apk/debug/app-debug.apk
           # gh release upload ${{github.event.release.tag_name}} ./app/build/outputs/apk/debug/app-debug.apk
+          
   release:
     name: Generate Release APK
     if: ${{ (inputs.buildType == 'release') }}
