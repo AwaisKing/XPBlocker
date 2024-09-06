@@ -1,23 +1,19 @@
 package com.aviraxp.xpblocker.helper;
 
-import android.content.pm.ApplicationInfo;
+import androidx.annotation.NonNull;
 
 import com.aviraxp.xpblocker.BuildConfig;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import de.robv.android.xposed.XSharedPreferences;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class PreferencesHelper {
-
     private static XSharedPreferences preferences = null;
     private static boolean isNoReloadPreferences = false;
 
-    private static XSharedPreferences getModuleSharedPreferences() {
+    private static XSharedPreferences getModulePrefs() {
         if (preferences == null) {
             preferences = new XSharedPreferences(BuildConfig.APPLICATION_ID);
             preferences.makeWorldReadable();
@@ -29,77 +25,59 @@ public class PreferencesHelper {
     }
 
     public static boolean isActViewHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("ACTVIEW_HOOK", false);
+        return getModulePrefs().getBoolean("ACTVIEW_HOOK", false);
     }
+
     public static boolean isSplashHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("SPLASH_HOOK", false);
+        return getModulePrefs().getBoolean("SPLASH_HOOK", false);
     }
 
     public static boolean isHostsHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("HOSTS_HOOK", false);
+        return getModulePrefs().getBoolean("HOSTS_HOOK", false);
     }
 
     public static boolean isWebViewHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("WEBVIEW_HOOK", false);
+        return getModulePrefs().getBoolean("WEBVIEW_HOOK", false);
     }
 
     public static boolean isServicesHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("SERVICES_HOOK", false);
+        return getModulePrefs().getBoolean("SERVICES_HOOK", false);
     }
 
     public static boolean isReceiversHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("RECEIVERS_HOOK", false);
+        return getModulePrefs().getBoolean("RECEIVERS_HOOK", false);
     }
 
     public static boolean isBackPressHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("BACKPRESS_HOOK", false);
+        return getModulePrefs().getBoolean("BACKPRESS_HOOK", false);
     }
 
     public static boolean isURLHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("URL_HOOK", false);
+        return getModulePrefs().getBoolean("URL_HOOK", false);
     }
 
     public static boolean isAggressiveHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("AGGRESSIVE_HOOK", false);
+        return getModulePrefs().getBoolean("AGGRESSIVE_HOOK", false);
     }
 
     public static boolean isShortcutHookEnabled() {
-        return getModuleSharedPreferences().getBoolean("SHORTCUT_HOOK", false);
-    }
-
-    public static boolean isDisableSystemApps() {
-        return getModuleSharedPreferences().getBoolean("SYSTEMAPPS", false);
+        return getModulePrefs().getBoolean("SHORTCUT_HOOK", false);
     }
 
     public static boolean isDebugModeEnabled() {
-        return getModuleSharedPreferences().getBoolean("DEBUG", false);
-    }
-
-    public static boolean isWhitelisted(String string) {
-        return isWhiteListModeEnabled() && selectedApps().contains(string) || !isWhiteListModeEnabled() && !selectedApps().contains(string);
-    }
-
-    private static boolean isWhiteListModeEnabled() {
-        return getModuleSharedPreferences().getBoolean("LIST_MODE", false);
-    }
-
-    public static boolean isDisabledSystemApp(XC_LoadPackage.LoadPackageParam lpm) {
-        return isDisableSystemApps() && (lpm.appInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0 && !lpm.packageName.contains("webview");
-    }
-
-    public static boolean isAndroidApp(String string) {
-        return string.startsWith("com.android") && !string.equals("com.android.webview") || string.equalsIgnoreCase("android");
-    }
-
-    private static Set<String> selectedApps() {
-        return getModuleSharedPreferences().getStringSet("SELECTED_APPS", new HashSet<String>());
-    }
-
-    public static List<String> whiteListElements() {
-        return Arrays.asList(getModuleSharedPreferences().getString("ACTIVITY_WHITELIST", "").split("\n"));
+        return getModulePrefs().getBoolean("DEBUG", false);
     }
 
     public static boolean isDisableXposedEnabled() {
-        return getModuleSharedPreferences().getBoolean("ANTIXPOSED_HOOK", false);
+        return getModulePrefs().getBoolean("ANTIXPOSED_HOOK", false);
+    }
+
+    public static boolean isAndroidApp(@NonNull String pkg) {
+        return pkg.startsWith("com.android") && !"com.android.webview".equals(pkg) || "android".equalsIgnoreCase(pkg);
+    }
+
+    @NonNull
+    public static List<String> whiteListElements() {
+        return Arrays.asList(getModulePrefs().getString("ACTIVITY_WHITELIST", "").split("\r?\n"));
     }
 }

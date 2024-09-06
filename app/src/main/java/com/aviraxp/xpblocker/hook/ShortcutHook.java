@@ -2,6 +2,8 @@ package com.aviraxp.xpblocker.hook;
 
 import android.content.Intent;
 
+import androidx.annotation.NonNull;
+
 import com.aviraxp.xpblocker.helper.PreferencesHelper;
 import com.aviraxp.xpblocker.util.LogUtils;
 
@@ -11,27 +13,22 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class ShortcutHook {
+    public static void hook(@NonNull final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!lpparam.packageName.equals("android")) return;
 
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
-
-        XC_MethodHook shortcutHook = new XC_MethodHook() {
+        final XC_MethodHook shortcutHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                String packageName = (String) param.args[1];
-                Intent intent = (Intent) param.args[2];
-                if (intent != null && intent.getAction() != null
-                        && intent.getAction().equals("com.android.launcher.action.INSTALL_SHORTCUT")) {
-                    if (PreferencesHelper.isShortcutHookEnabled()) {
-                        param.setResult(0);
-                        LogUtils.logRecord("Shortcut Block Success:" + packageName);
-                    }
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                final Intent intent = (Intent) param.args[2];
+                if (intent != null && "com.android.launcher.action.INSTALL_SHORTCUT".equals(intent.getAction())) {
+                    final String packageName = (String) param.args[1];
+                    if (!PreferencesHelper.isShortcutHookEnabled()) return;
+                    param.setResult(0);
+                    LogUtils.logRecord("Shortcut Block Success:" + packageName);
                 }
             }
         };
-
-        if (lpparam.packageName.equals("android")) {
-            Class<?> clazz = XposedHelpers.findClass("com.android.server.am.ActivityManagerService", lpparam.classLoader);
-            XposedBridge.hookAllMethods(clazz, "broadcastIntentLocked", shortcutHook);
-        }
+        XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.server.am.ActivityManagerService", lpparam.classLoader),
+                                    "broadcastIntentLocked", shortcutHook);
     }
 }

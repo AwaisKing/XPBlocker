@@ -1,5 +1,10 @@
 package com.aviraxp.xpblocker.hook;
 
+import static com.aviraxp.xpblocker.helper.PreferencesHelper.isActViewHookEnabled;
+import static com.aviraxp.xpblocker.helper.PreferencesHelper.isAggressiveHookEnabled;
+import static com.aviraxp.xpblocker.helper.PreferencesHelper.whiteListElements;
+import static com.aviraxp.xpblocker.hook.HookLoader.actViewList;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContextWrapper;
@@ -8,7 +13,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.aviraxp.xpblocker.helper.PreferencesHelper;
+import androidx.annotation.NonNull;
+
 import com.aviraxp.xpblocker.util.LogUtils;
 
 import java.util.HashSet;
@@ -19,42 +25,37 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class ActViewHook {
+    private static final HashSet<String> aggressiveBlockCache = new HashSet<>();
 
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+    public static void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!isActViewHookEnabled()) return;
 
-        if (!PreferencesHelper.isActViewHookEnabled()) {
-            return;
-        }
-
-        XC_MethodHook activityStartHook = new XC_MethodHook() {
+        final XC_MethodHook activityStartHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (param.args[0] != null) {
-                    ComponentName Component = ((Intent) param.args[0]).getComponent();
-                    if (Component != null) {
-                        String activityClassName = Component.getClassName();
-                        if (activityClassName != null && (HookLoader.actViewList.contains(activityClassName) || PreferencesHelper.isAggressiveHookEnabled() && isAggressiveBlock(activityClassName)) && !PreferencesHelper.whiteListElements().contains(activityClassName)) {
-                            param.setResult(null);
-                            LogUtils.logRecord("Activity Block Success: " + lpparam.packageName + "/" + activityClassName);
-                        }
-                    }
-                }
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                if (param.args[0] == null) return;
+                final ComponentName component = ((Intent) param.args[0]).getComponent();
+                final String activityClassName = component == null ? null : component.getClassName();
+                if (activityClassName == null || whiteListElements().contains(activityClassName)) return;
+                if (!actViewList.contains(activityClassName) && !(isAggressiveHookEnabled() && isAggressiveBlock(activityClassName))) return;
+
+                param.setResult(null);
+                LogUtils.logRecord("Activity Block Success: " + lpparam.packageName + "/" + activityClassName);
             }
         };
 
-        XC_MethodHook viewHook = new XC_MethodHook() {
+        final XC_MethodHook viewHook = new XC_MethodHook() {
             @Override
-            protected void afterHookedMethod(MethodHookParam param) {
+            protected void afterHookedMethod(@NonNull final MethodHookParam param) {
                 hideIfAdView((View) param.thisObject, lpparam.packageName);
             }
         };
 
-        XC_MethodHook visibilityHook = new XC_MethodHook() {
+        final XC_MethodHook visibilityHook = new XC_MethodHook() {
             @Override
-            protected void afterHookedMethod(MethodHookParam param) {
-                if ((Integer) param.args[0] != 8) {
-                    hideIfAdView((View) param.thisObject, lpparam.packageName);
-                }
+            protected void afterHookedMethod(@NonNull final MethodHookParam param) {
+                if ((Integer) param.args[0] == 8) return;
+                hideIfAdView((View) param.thisObject, lpparam.packageName);
             }
         };
 
@@ -65,27 +66,23 @@ class ActViewHook {
         XposedBridge.hookAllConstructors(ViewGroup.class, viewHook);
     }
 
-    static final HashSet<String> aggressiveBlockCache = new HashSet<>();
-    private boolean isAggressiveBlock(String string) {
-        if(aggressiveBlockCache.contains(string))return true;
-        for (String listItem : HookLoader.actViewList_aggressive) {
-            if (string.contains(listItem)) {
-                aggressiveBlockCache.add(string);
+    private static boolean isAggressiveBlock(final String activityClassName) {
+        if (aggressiveBlockCache.contains(activityClassName)) return true;
+        for (final String listItem : HookLoader.actViewList_aggressive) {
+            if (activityClassName.contains(listItem)) {
+                aggressiveBlockCache.add(activityClassName);
                 return true;
             }
         }
         return false;
     }
 
-    private void hideIfAdView(View paramView, String paramString) {
-        String viewName = paramView.getClass().getName();
-        if (PreferencesHelper.whiteListElements().contains(viewName)) {
-            return;
-        }
-        if (PreferencesHelper.isAggressiveHookEnabled() && isAggressiveBlock(viewName) || HookLoader.actViewList.contains(viewName)) {
-            paramView.clearAnimation();
-            paramView.setVisibility(View.GONE);
-            LogUtils.logRecord("View Block Success: " + paramString + "/" + viewName);
-        }
+    private static void hideIfAdView(@NonNull final View paramView, final String paramString) {
+        final String viewName = paramView.getClass().getName();
+        if (whiteListElements().contains(viewName)) return;
+        if ((!isAggressiveHookEnabled() || !isAggressiveBlock(viewName)) && !actViewList.contains(viewName)) return;
+        paramView.clearAnimation();
+        paramView.setVisibility(View.GONE);
+        LogUtils.logRecord("View Block Success: " + paramString + "/" + viewName);
     }
 }

@@ -4,6 +4,8 @@ import android.net.Network;
 import android.os.NetworkOnMainThreadException;
 import android.os.StrictMode;
 
+import androidx.annotation.NonNull;
+
 import com.aviraxp.xpblocker.helper.PreferencesHelper;
 import com.aviraxp.xpblocker.util.LogUtils;
 
@@ -19,36 +21,66 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class HostsHook {
+    public static void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!PreferencesHelper.isHostsHookEnabled()) return;
 
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
-
-        if (!PreferencesHelper.isHostsHookEnabled()) {
-            return;
-        }
-
-        XC_MethodHook socketClzHook = new XC_MethodHook() {
+        final XC_MethodHook socketClzHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (param.args != null && param.args.length > 0 && param.args[0] != null) {
-                    Object obj = param.args[0];
-                    String host = null;
-                    if (obj instanceof String) {
-                        host = (String) obj;
-                    } else if (obj instanceof InetAddress) {
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                if (param.args == null || param.args.length == 0 || param.args[0] == null) return;
+                final Object obj = param.args[0];
+                final String host = obj instanceof String ? (String) obj : obj instanceof InetAddress
+                                                                           ? ((InetAddress) obj).getHostName() : null;
+                if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
+                    param.setResult(null);
+                    LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
+                }
+            }
+        };
+
+        final XC_MethodHook inetAddrHookSingleResult = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                final String host = (String) param.args[0];
+                if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
+                    param.setResult(null);
+                    param.setThrowable(new UnknownHostException());
+                    LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
+                }
+            }
+        };
+
+        final XC_MethodHook inetSockAddrClzHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                if (param.args == null || param.args.length <= 0 || param.args[0] == null) return;
+
+                final Object obj = param.args[0];
+                String host = null;
+                if (obj instanceof String) host = (String) obj;
+                else if (obj instanceof InetAddress) {
+                    try {
                         host = ((InetAddress) obj).getHostName();
+                    } catch (final NetworkOnMainThreadException e) {
+                        final StrictMode.ThreadPolicy oldPolicy = StrictMode.getThreadPolicy();
+                        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitNetwork().build());
+                        host = ((InetAddress) obj).getHostName();
+                        StrictMode.setThreadPolicy(oldPolicy);
                     }
-                    if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
-                        param.setResult(null);
-                        LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
-                    }
+                }
+                if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
+                    param.setResult(new Object());
+                    param.setThrowable(new UnknownHostException());
+                    LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
                 }
             }
         };
 
-        XC_MethodHook inetAddrHookSingleResult = new XC_MethodHook() {
+        final XC_MethodHook ioBridgeHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                String host = (String) param.args[0];
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                final InetAddress address = (InetAddress) param.args[1];
+                final String host = address == null ? null : address.getHostName();
                 if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
                     param.setResult(null);
                     param.setThrowable(new UnknownHostException());
@@ -57,50 +89,11 @@ class HostsHook {
             }
         };
 
-        XC_MethodHook inetSockAddrClzHook = new XC_MethodHook() {
+        final XC_MethodHook blockGuardOsHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (param.args != null && param.args.length > 0 && param.args[0] != null) {
-                    Object obj = param.args[0];
-                    String host = null;
-                    if (obj instanceof String) {
-                        host = (String) obj;
-                    } else if (obj instanceof InetAddress) {
-                        try {
-                            host = ((InetAddress) obj).getHostName();
-                        } catch (NetworkOnMainThreadException e) {
-                            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitNetwork().build();
-                            StrictMode.setThreadPolicy(policy);
-                            host = ((InetAddress) obj).getHostName();
-                        }
-                    }
-                    if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
-                        param.setResult(new Object());
-                        param.setThrowable(new UnknownHostException());
-                        LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
-                    }
-                }
-            }
-        };
-
-        XC_MethodHook ioBridgeHook = new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                InetAddress address = (InetAddress) param.args[1];
-                String host = address.getHostName();
-                if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
-                    param.setResult(null);
-                    param.setThrowable(new UnknownHostException());
-                    LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
-                }
-            }
-        };
-
-        XC_MethodHook blockGuardOsHook = new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                InetAddress address = (InetAddress) param.args[1];
-                String host = address.getHostName();
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                final InetAddress address = (InetAddress) param.args[1];
+                final String host = address == null ? null : address.getHostName();
                 if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
                     param.setResult(null);
                     param.setThrowable(new SocketException());
@@ -109,11 +102,11 @@ class HostsHook {
             }
         };
 
-        XC_MethodHook ioBridgeBooleanHook = new XC_MethodHook() {
+        final XC_MethodHook ioBridgeBooleanHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                InetAddress address = (InetAddress) param.args[1];
-                String host = address.getHostName();
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                final InetAddress address = (InetAddress) param.args[1];
+                final String host = address == null ? null : address.getHostName();
                 if (host != null && HookLoader.hostsList.contains(host) && !PreferencesHelper.whiteListElements().contains(host)) {
                     param.setResult(false);
                     LogUtils.logRecord("Hosts Block Success: " + lpparam.packageName + "/" + host);
@@ -121,8 +114,8 @@ class HostsHook {
             }
         };
 
-        Class<?> ioBridgeClz = XposedHelpers.findClass("libcore.io.IoBridge", lpparam.classLoader);
-        Class<?> blockGuardOsClz = XposedHelpers.findClass("libcore.io.BlockGuardOs", lpparam.classLoader);
+        final Class<?> ioBridgeClz = XposedHelpers.findClass("libcore.io.IoBridge", lpparam.classLoader);
+        final Class<?> blockGuardOsClz = XposedHelpers.findClass("libcore.io.BlockGuardOs", lpparam.classLoader);
 
         XposedBridge.hookAllConstructors(Socket.class, socketClzHook);
         XposedBridge.hookAllConstructors(InetSocketAddress.class, inetSockAddrClzHook);

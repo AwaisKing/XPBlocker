@@ -1,5 +1,7 @@
 package com.aviraxp.xpblocker.hook;
 
+import androidx.annotation.NonNull;
+
 import com.aviraxp.xpblocker.helper.PreferencesHelper;
 import com.aviraxp.xpblocker.util.LogUtils;
 
@@ -8,20 +10,15 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class BackPressHook {
+    public static void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!PreferencesHelper.isBackPressHookEnabled()) return;
 
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
-
-        if (!PreferencesHelper.isBackPressHookEnabled()) {
-            return;
-        }
-
-        XC_MethodHook backPressHook = new XC_MethodHook() {
+        final XC_MethodHook backPressHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                if (!(Boolean) param.args[0]) {
-                    param.args[0] = true;
-                    LogUtils.logRecord("BackPressHook Success: " + lpparam.packageName);
-                }
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                if ((Boolean) param.args[0]) return;
+                param.args[0] = true;
+                LogUtils.logRecord("BackPressHook Success: " + lpparam.packageName);
             }
         };
 

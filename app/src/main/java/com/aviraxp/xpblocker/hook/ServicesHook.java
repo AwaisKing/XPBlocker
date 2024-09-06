@@ -3,7 +3,8 @@ package com.aviraxp.xpblocker.hook;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
+
+import androidx.annotation.NonNull;
 
 import com.aviraxp.xpblocker.helper.PreferencesHelper;
 import com.aviraxp.xpblocker.util.ContextUtils;
@@ -15,53 +16,40 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class ServicesHook {
+    public static void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!PreferencesHelper.isServicesHookEnabled() || !"android".equals(lpparam.packageName)) return;
 
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
-
-        XC_MethodHook servicesStartHook = new XC_MethodHook() {
+        final XC_MethodHook servicesStartHook = new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                Intent intent = (Intent) param.args[1];
-                handleServiceStart(param, intent);
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                handleServiceStart(param, (Intent) param.args[1]);
+            }
+        };
+        final XC_MethodHook servicesBindHook = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(@NonNull final MethodHookParam param) {
+                handleServiceStart(param, (Intent) param.args[2]);
             }
         };
 
-        XC_MethodHook servicesBindHook = new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                Intent intent = (Intent) param.args[2];
-                handleServiceStart(param, intent);
-            }
-        };
-
-        if (PreferencesHelper.isServicesHookEnabled() && lpparam.packageName.equals("android")) {
-            XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.server.am.ActiveServices", lpparam.classLoader), "startServiceLocked", servicesStartHook);
-            XposedBridge.hookAllMethods(XposedHelpers.findClass("com.android.server.am.ActiveServices", lpparam.classLoader), "bindServiceLocked", servicesBindHook);
-        }
+        final Class<?> activeServices = XposedHelpers.findClass("com.android.server.am.ActiveServices", lpparam.classLoader);
+        XposedBridge.hookAllMethods(activeServices, "startServiceLocked", servicesStartHook);
+        XposedBridge.hookAllMethods(activeServices, "bindServiceLocked", servicesBindHook);
     }
 
-    private void handleServiceStart(XC_MethodHook.MethodHookParam param, Intent serviceIntent) {
-        if (serviceIntent != null) {
-            ComponentName serviceName = serviceIntent.getComponent();
-            if (serviceName != null) {
-                String packageName = serviceName.getPackageName();
-                String splitServicesName = serviceName.getClassName();
-                if (HookLoader.servicesList.contains(splitServicesName) && !PreferencesHelper.isWhitelisted(packageName) && !PreferencesHelper.whiteListElements().contains(splitServicesName)) {
-                    if (!PreferencesHelper.isDisableSystemApps()) {
-                        param.setResult(null);
-                    } else {
-                        try {
-                            ApplicationInfo info = ContextUtils.getSystemContext().getPackageManager().getApplicationInfo(packageName, 0);
-                            if ((info.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-                                param.setResult(null);
-                            }
-                        } catch (PackageManager.NameNotFoundException e) {
-                            return;
-                        }
-                    }
-                    LogUtils.logRecord("Service Block Success: " + serviceName.flattenToShortString());
-                }
-            }
+    private static void handleServiceStart(final XC_MethodHook.MethodHookParam param, final Intent serviceIntent) {
+        final ComponentName serviceName = serviceIntent == null ? null : serviceIntent.getComponent();
+        if (serviceName == null) return;
+        final String splitServicesName = serviceName.getClassName();
+        if (!HookLoader.servicesList.contains(splitServicesName) || PreferencesHelper.whiteListElements().contains(splitServicesName)) return;
+
+        final String packageName = serviceName.getPackageName();
+        try {
+            final ApplicationInfo info = ContextUtils.getSystemContext().getPackageManager().getApplicationInfo(packageName, 0);
+            if ((info.flags & ApplicationInfo.FLAG_SYSTEM) == 0) param.setResult(null);
+        } catch (final Throwable e) {
+            return;
         }
+        LogUtils.logRecord("Service Block Success: " + serviceName.flattenToShortString());
     }
 }

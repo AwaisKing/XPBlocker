@@ -1,22 +1,14 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <MultiSelectListPreference
-        android:key="SELECTED_APPS"
+    <PreferenceScreen
+        android:enabled="false"
         android:summary="@string/applist_description"
         android:title="@string/applist" />
-    <CheckBoxPreference
-        android:defaultValue="false"
-        android:key="LIST_MODE"
-        android:summary="@string/list_mode_description"
-        android:title="@string/list_mode" />
-    <CheckBoxPreference
-        android:defaultValue="false"
-        android:key="SYSTEMAPPS"
-        android:summary="@string/system_apps_description"
-        android:title="@string/system_apps" />
+
     <EditTextPreference
         android:key="ACTIVITY_WHITELIST"
         android:summary="@string/activity_whitelist_description"
         android:title="@string/activity_whitelist" />
+
     <PreferenceCategory
         android:key="SETTINGS"
         android:title="@string/settings">
@@ -76,6 +68,7 @@
             android:summary="@string/url_hook_description"
             android:title="@string/url_hook" />
     </PreferenceCategory>
+
     <PreferenceCategory
         android:key="MISCELLANEOUS"
         android:title="@string/miscellaneous">
@@ -95,6 +88,7 @@
             android:summary="@string/debug_description"
             android:title="@string/debug" />
     </PreferenceCategory>
+
     <PreferenceCategory
         android:key="ABOUT"
         android:title="@string/about">
@@ -102,10 +96,6 @@
             android:key="MAINTAINER"
             android:summary="@string/app_maintainer"
             android:title="@string/maintainer" />
-        <PreferenceScreen
-            android:key="XDA"
-            android:summary="@string/open_xda_description"
-            android:title="@string/open_xda" />
         <PreferenceScreen
             android:key="GITHUB"
             android:summary="@string/open_project_description"
@@ -115,12 +105,12 @@
             android:summary="@string/license_description"
             android:title="@string/license" />
     </PreferenceCategory>
+
     <PreferenceCategory
         android:key="CREDITS"
-        android:title="@string/credits">
-    </PreferenceCategory>
+        android:title="@string/credits" />
+
     <PreferenceCategory
         android:key="NULL"
-        android:title=" ">
-    </PreferenceCategory>
+        android:title=" " />
 </PreferenceScreen>

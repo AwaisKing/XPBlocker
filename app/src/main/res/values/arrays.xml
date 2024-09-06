@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="xposed_apps_scope">
+        <!-- for testing -->
+        <item>awais.testapp</item>
+    </string-array>
+</resources>

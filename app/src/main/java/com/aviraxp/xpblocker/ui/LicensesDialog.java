@@ -4,33 +4,30 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-class LicensesDialog extends AlertDialog.Builder {
+public class LicensesDialog extends AlertDialog.Builder {
+    private static final String LICENSES_URL = "file:///android_asset/html/licenses.html";
+    private static final String UPDATE_LOG_URL = "file:///android_asset/html/update_en.html";
 
-    private final Context ctx;
-
-    LicensesDialog(Context context, String url) {
+    public LicensesDialog(final Context context, boolean isUpdateLog) {
         super(context);
-        ctx = context;
-        init(url);
-    }
-
-    private void init(String url) {
-        WebView view = new WebView(ctx);
-        view.loadUrl(url);
+        final WebView view = new WebView(context);
+        view.setWebChromeClient(new WebChromeClient());
         view.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url != null && url.startsWith("http")) {
-                    view.getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            @SuppressWarnings("deprecation")
+            public boolean shouldOverrideUrlLoading(final WebView view, final String url) {
+                if (url.startsWith("http")) {
+                    context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                     return true;
-                } else {
-                    return false;
                 }
+                return super.shouldOverrideUrlLoading(view, url);
             }
         });
+        view.loadUrl(isUpdateLog ? UPDATE_LOG_URL : LICENSES_URL);
         setView(view);
     }
 }

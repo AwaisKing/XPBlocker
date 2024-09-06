@@ -14,25 +14,21 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 class ReceiversHook {
-
-    public void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
-
-        if (!PreferencesHelper.isReceiversHookEnabled()) {
-            return;
-        }
+    public static void hook(final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (!PreferencesHelper.isReceiversHookEnabled()) return;
 
         try {
-            ActivityInfo[] receiverInfo = ContextUtils.getSystemContext().getPackageManager().getPackageInfo(lpparam.packageName, PackageManager.GET_RECEIVERS).receivers;
-            if (receiverInfo != null) {
-                for (ActivityInfo info : receiverInfo) {
-                    String className = info.getClass().getName();
-                    if (HookLoader.receiversList.contains(className) && !PreferencesHelper.whiteListElements().contains(className)) {
-                        XposedHelpers.findAndHookMethod(info.name, lpparam.classLoader, "onReceive", Context.class, Intent.class, XC_MethodReplacement.DO_NOTHING);
-                        LogUtils.logRecord("Receiver Block Success: " + lpparam.packageName + "/" + info.name);
-                    }
-                }
+            final ActivityInfo[] receiverInfo = ContextUtils.getSystemContext().getPackageManager()
+                                                            .getPackageInfo(lpparam.packageName, PackageManager.GET_RECEIVERS).receivers;
+            if (receiverInfo == null) return;
+            for (final ActivityInfo info : receiverInfo) {
+                final String className = info.getClass().getName();
+                if (!HookLoader.receiversList.contains(className) || PreferencesHelper.whiteListElements().contains(className)) continue;
+                XposedHelpers.findAndHookMethod(info.name, lpparam.classLoader, "onReceive",
+                                                Context.class, Intent.class, XC_MethodReplacement.DO_NOTHING);
+                LogUtils.logRecord("Receiver Block Success: " + lpparam.packageName + "/" + info.name);
             }
-        } catch (PackageManager.NameNotFoundException ignored) {
+        } catch (final Exception ignored) {
         }
     }
 }

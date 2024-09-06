@@ -5,14 +5,14 @@ plugins {
 android {
     namespace 'com.aviraxp.xpblocker'
     compileSdk 35
-    
+
     defaultConfig {
         applicationId 'com.aviraxp.xpblocker'
         minSdk 26
         targetSdk 35
 
         versionCode 34
-        versionName "1.8.34"
+        versionName '1.8.34'
 
         multiDexEnabled true
         vectorDrawables {
@@ -47,7 +47,6 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-            zipAlignEnabled true
             shrinkResources false
             jniDebuggable true
             signingConfig signingConfigs.debug
@@ -79,4 +78,5 @@ android {
 
 dependencies {
     compileOnly 'de.robv.android.xposed:api:82'
+    compileOnly 'de.robv.android.xposed:api:82:sources'
 }

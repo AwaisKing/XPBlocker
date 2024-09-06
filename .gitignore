@@ -1,5 +1,7 @@
 *.iml
 .gradle
+.idea
 /local.properties
 /build
-.idea
+/app/src/main/java/de
+/app/src/main/java/com/android/internal
