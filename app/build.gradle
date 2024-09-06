@@ -1,14 +1,35 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 32
-    namespace "com.aviraxp.xpblocker"
+    namespace 'com.aviraxp.xpblocker'
+    
     defaultConfig {
-        minSdkVersion 26
-        //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 28
+        applicationId 'com.aviraxp.xpblocker'
+        minSdk 26
+        targetSdk 34
+        
         versionCode 34
         versionName "1.8.34"
+
+        multiDexEnabled true
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+        viewBinding true
+    }
+
+    androidResources {
+        namespaced false
+        additionalParameters.add('--no-version-vectors')
+    }
+
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_11
     }
 
     signingConfigs {
@@ -21,21 +42,35 @@ android {
     }
 
     buildTypes {
-        release {
-            minifyEnabled true
-            shrinkResources false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
         debug {
-            signingConfig signingConfigs.debug
             minifyEnabled false
             zipAlignEnabled true
             shrinkResources false
+            jniDebuggable true
+            signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled true
+            shrinkResources false
+            jniDebuggable false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-    lintOptions {
-        abortOnError false
+    packagingOptions {
+        resources {
+            excludes += [
+                    '**/**.version', '**/**.properties', '**/LGPL2.1',
+                    '**/DEPENDENCIES', '**/DEPENDENCIES.txt', '**/dependencies.txt',
+                    '**/LICENSE', '**/LICENSE.txt', '**/license.txt',
+                    '**/NOTICE', '**/NOTICE.txt', '**/notice.txt'
+            ]
+        }
+    }
+
+    dependenciesInfo {
+        includeInApk false
+        includeInBundle false
     }
 }
 
